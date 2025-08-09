@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Bookshelf</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --secondary-color: #10B981;
+            --dark-color: #1F2937;
+            --light-color: #F3F4F6;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--light-color);
+            color: var(--dark-color);
+        }
+
+        .header-font {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .shelf {
+            background-image: linear-gradient(to bottom, #D1D5DB 1px, transparent 1px);
+            background-size: 100% 200px;
+            background-repeat: repeat-y;
+        }
+
+        .book {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .book:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .book-spine {
+            position: absolute;
+            left: 0;
+            width: 20px;
+            height: 100%;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-12 text-center bg-gradient-to-r from-indigo-500 to-purple-600 p-8 rounded-xl shadow-lg relative">
+            <h1 class="header-font text-4xl md:text-5xl font-bold text-white mb-4">My Personal Book Collection</h1>
+            <p class="text-lg text-indigo-100 max-w-2xl mx-auto">Track, rate and rediscover your favorite books</p>
+
+            <div class="absolute top-4 right-4 flex gap-2">
+                <button id="signInBtn" class="bg-white text-indigo-600 px-4 py-2 rounded-lg shadow-md hover:bg-gray-100 transition-colors">Sign In</button>
+                <button id="signUpBtn" class="bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-800 transition-colors">Sign Up</button>
+                <div id="userInfo" class="hidden flex items-center gap-2">
+                    <span id="welcomeMessage" class="text-white text-lg"></span>
+                    <button id="signOutBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-600 transition-colors">Sign Out</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Controls -->
+        <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" id="searchInput" placeholder="Search books..." class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <button id="addBookBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Add Book
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white rounded-xl p-6 shadow-md border-l-4 border-indigo-500 transition-all hover:scale-[1.02]">
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium">Total Books</h3>
+                        <p id="totalBooks" class="text-3xl font-bold text-indigo-600">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 shadow-md border-l-4 border-emerald-500 transition-all hover:scale-[1.02]">
+                <div class="flex items-center gap-3">
+                    <div class="bg-emerald-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium">Books Read</h3>
+                        <p id="booksRead" class="text-3xl font-bold text-emerald-600">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 shadow-md border-l-4 border-purple-500 transition-all hover:scale-[1.02]">
+                <div class="flex items-center gap-3">
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium">Favorite Genre</h3>
+                        <p id="favoriteGenre" class="text-3xl font-bold text-purple-600">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Book Shelf -->
+        <div id="shelf" class="shelf rounded-xl bg-gray-100 p-6 shadow-inner min-h-[400px]">
+            <div id="booksContainer" class="flex flex-wrap gap-6">
+                <!-- Books will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Book Modal -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="header-font text-2xl font-bold text-gray-800">Add New Book</h2>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="bookForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title*</label>
+                        <input type="text" id="title" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label for="author" class="block text-sm font-medium text-gray-700 mb-1">Author*</label>
+                        <input type="text" id="author" name="author" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="genre" class="block text-sm font-medium text-gray-700 mb-1">Genre</label>
+                        <select id="genre" name="genre" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="Fiction">Fiction</option>
+                            <option value="Non-Fiction">Non-Fiction</option>
+                            <option value="Science Fiction">Science Fiction</option>
+                            <option value="Fantasy">Fantasy</option>
+                            <option value="Romance">Romance</option>
+                            <option value="Mystery">Mystery</option>
+                            <option value="Biography">Biography</option>
+                            <option value="History">History</option>
+                            <option value="Self-Help">Self-Help</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="publishedYear" class="block text-sm font-medium text-gray-700 mb-1">Year Published</label>
+                        <input type="number" id="publishedYear" name="publishedYear" min="1800" max="2024" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label for="pages" class="block text-sm font-medium text-gray-700 mb-1">Page Count</label>
+                        <input type="number" id="pages" name="pages" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="isbn" class="block text-sm font-medium text-gray-700 mb-1">ISBN</label>
+                        <input type="text" id="isbn" name="isbn" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label for="coverUrl" class="block text-sm font-medium text-gray-700 mb-1">Cover Image URL</label>
+                        <input type="url" id="coverUrl" name="coverUrl" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="read" name="read" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="read" class="ml-2 block text-sm text-gray-700">Mark as read</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="favorite" name="favorite" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="favorite" class="ml-2 block text-sm text-gray-700">Favorite</label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="cancelBtn" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Cancel</button>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Save Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Book Details Modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content fade-in max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="bookDetailsTitle" class="header-font text-2xl font-bold text-gray-800">Book Details</h2>
+                <button id="closeDetailsModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="flex flex-col md:flex-row gap-6">
+                <div class="md:w-1/3 flex justify-center">
+                    <div class="w-full max-w-xs">
+                        <img id="bookDetailsCover" src="https://placehold.co/300x450?text=Book+Cover" alt="Book cover image" class="rounded-lg shadow-md w-full h-auto">
+                    </div>
+                </div>
+                
+                <div class="md:w-2/3 space-y-4">
+                    <div>
+                        <h3 id="bookDetailsAuthor" class="text-xl font-semibold text-gray-800"></h3>
+                        <p id="bookDetailsPublished" class="text-sm text-gray-500"></p>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        <span id="bookDetailsGenre" class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800"></span>
+                        <span id="bookDetailsPages" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800"></span>
+                        <span id="bookDetailsStatus" class="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800"></span>
+                        <span id="bookDetailsFavorite" class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 hidden">Favorite</span>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-md font-medium text-gray-700 mb-1">Description</h4>
+                        <p id="bookDetailsDescription" class="text-gray-600 text-sm"></p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-md font-medium text-gray-700 mb-1">ISBN</h4>
+                        <p id="bookDetailsIsbn" class="text-gray-600 text-sm"></p>
+                    </div>
+                    
+                    <div class="flex gap-3 pt-4">
+                        <button id="editBookBtn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Edit</button>
+                        <button id="deleteBookBtn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign In Modal -->
+    <div id="signInModal" class="modal">
+        <div class="modal-content fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="header-font text-2xl font-bold text-gray-800">Sign In</h2>
+                <button id="closeSignInModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="signInForm" class="space-y-4">
+                <div>
+                    <label for="signInEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="signInEmail" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="signInPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="signInPassword" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign In</button>
+                </div>
+            </form>
+            <p class="text-center text-sm text-gray-600 mt-4">Don't have an account? <a href="#" id="openSignUpLink" class="text-indigo-600 hover:underline">Sign Up</a></p>
+        </div>
+    </div>
+
+    <!-- Sign Up Modal -->
+    <div id="signUpModal" class="modal">
+        <div class="modal-content fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="header-font text-2xl font-bold text-gray-800">Sign Up</h2>
+                <button id="closeSignUpModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="signUpForm" class="space-y-4">
+                <div>
+                    <label for="signUpUsername" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="signUpUsername" name="username" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="signUpEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="signUpEmail" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="signUpPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="signUpPassword" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign Up</button>
+                </div>
+            </form>
+            <p class="text-center text-sm text-gray-600 mt-4">Already have an account? <a href="#" id="openSignInLink" class="text-indigo-600 hover:underline">Sign In</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Mock database - In a real app, this would be replaced with actual API calls to your backend
+        let booksDB = [];
+        let currentBookId = null;
+
+        // DOM Elements
+        const booksContainer = document.getElementById('booksContainer');
+        const addBookBtn = document.getElementById('addBookBtn');
+        const bookModal = document.getElementById('bookModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const bookForm = document.getElementById('bookForm');
+        const detailsModal = document.getElementById('detailsModal');
+        const closeDetailsModalBtn = document.getElementById('closeDetailsModalBtn');
+        const searchInput = document.getElementById('searchInput');
+        const editBookBtn = document.getElementById('editBookBtn');
+        const deleteBookBtn = document.getElementById('deleteBookBtn');
+
+        // Auth DOM Elements
+        const signInModal = document.getElementById('signInModal');
+        const closeSignInModalBtn = document.getElementById('closeSignInModalBtn');
+        const signInForm = document.getElementById('signInForm');
+        const signUpModal = document.getElementById('signUpModal');
+        const closeSignUpModalBtn = document.getElementById('closeSignUpModalBtn');
+        const signUpForm = document.getElementById('signUpForm');
+
+        const signInBtn = document.getElementById('signInBtn');
+        const signUpBtn = document.getElementById('signUpBtn');
+        const userInfo = document.getElementById('userInfo');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const signOutBtn = document.getElementById('signOutBtn');
+        const openSignUpLink = document.getElementById('openSignUpLink');
+        const openSignInLink = document.getElementById('openSignInLink');
+
+
+        // Stats elements
+        const totalBooksElement = document.getElementById('totalBooks');
+        const booksReadElement = document.getElementById('booksRead');
+        const favoriteGenreElement = document.getElementById('favoriteGenre');
+
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:3001/api'; // Ensure this matches your backend port
+
+        // Authentication State
+        let authToken = localStorage.getItem('authToken');
+        let currentUserId = localStorage.getItem('currentUserId');
+        let currentUsername = localStorage.getItem('currentUsername');
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', async () => {
+            updateAuthUI(); // Check auth status on load
+
+            // Event listeners for auth modals
+            signInBtn.addEventListener('click', () => openModal(signInModal));
+            closeSignInModalBtn.addEventListener('click', () => closeModal(signInModal));
+            signInForm.addEventListener('submit', handleSignIn);
+
+            signUpBtn.addEventListener('click', () => openModal(signUpModal));
+            closeSignUpModalBtn.addEventListener('click', () => closeModal(signUpModal));
+            signUpForm.addEventListener('submit', handleSignUp);
+
+            signOutBtn.addEventListener('click', handleSignOut);
+
+            openSignUpLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeModal(signInModal);
+                openModal(signUpModal);
+            });
+            openSignInLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeModal(signUpModal);
+                openModal(signInModal);
+            });
+
+            // Existing event listeners for book management
+            addBookBtn.addEventListener('click', openAddBookModal);
+            closeModalBtn.addEventListener('click', () => closeModal(bookModal));
+            cancelBtn.addEventListener('click', () => closeModal(bookModal));
+            bookForm.addEventListener('submit', handleSubmit);
+            closeDetailsModalBtn.addEventListener('click', () => closeModal(detailsModal));
+            searchInput.addEventListener('input', handleSearch);
+            editBookBtn.addEventListener('click', editCurrentBook);
+            deleteBookBtn.addEventListener('click', deleteCurrentBook);
+
+            // Fetch books if already authenticated
+            if (authToken) {
+                await fetchAndRenderUserBooks();
+            } else {
+                // Display a message for unauthenticated users
+                booksContainer.innerHTML = `
+                    <div class="w-full text-center py-12">
+                        <p class="text-gray-500 text-lg mb-4">Please sign in to view and manage your book collection.</p>
+                        <button onclick="document.getElementById('signInBtn').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition-colors">Sign In Now</button>
+                    </div>
+                `;
+            }
+        });
+
+        // --- UI/Modal Control Functions ---
+        function openModal(modalElement) {
+            modalElement.style.display = 'flex';
+        }
+
+        function closeModal(modalElement) {
+            modalElement.style.display = 'none';
+        }
+
+        function openAddBookModal() {
+            currentBookId = null;
+            bookForm.reset();
+            openModal(bookModal);
+        }
+
+        function openEditBookModal() {
+            openModal(bookModal);
+        }
+
+        function closeDetailsModal() {
+            closeModal(detailsModal);
+        }
+
+        // --- Authentication Functions ---
+        function updateAuthUI() {
+            if (authToken && currentUsername) {
+                signInBtn.classList.add('hidden');
+                signUpBtn.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                welcomeMessage.textContent = `Welcome, ${currentUsername}!`;
+                addBookBtn.classList.remove('hidden'); // Show add book button for logged-in users
+            } else {
+                signInBtn.classList.remove('hidden');
+                signUpBtn.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+                addBookBtn.classList.add('hidden'); // Hide add book button for logged-out users
+            }
+            // Re-render books or show placeholder based on auth status
+            if (authToken) {
+                fetchAndRenderUserBooks(); // Fetch user's books
+            } else {
+                booksDB = []; // Clear local books
+                renderBooks(booksDB); // Clear displayed books
+                updateStats(); // Reset stats
+                booksContainer.innerHTML = `
+                    <div class="w-full text-center py-12">
+                        <p class="text-gray-500 text-lg mb-4">Please sign in to view and manage your book collection.</p>
+                        <button onclick="document.getElementById('signInBtn').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition-colors">Sign In Now</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function handleSignIn(event) {
+            event.preventDefault();
+            const email = signInForm.signInEmail.value;
+            const password = signInForm.signInPassword.value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUserId = data.userId;
+                    currentUsername = data.username;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUserId', currentUserId);
+                    localStorage.setItem('currentUsername', currentUsername);
+                    closeModal(signInModal);
+                    updateAuthUI();
+                    await fetchAndRenderUserBooks(); // Fetch books for the logged-in user
+                } else {
+                    alert(data.message || 'Sign in failed.');
+                }
+            } catch (error) {
+                console.error('Error during sign in:', error);
+                alert('An error occurred during sign in.');
+            }
+        }
+
+        async function handleSignUp(event) {
+            event.preventDefault();
+            const username = signUpForm.signUpUsername.value;
+            const email = signUpForm.signUpEmail.value;
+            const password = signUpForm.signUpPassword.value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Registration successful! Please sign in.');
+                    closeModal(signUpModal);
+                    openModal(signInModal); // Open sign-in modal after successful registration
+                } else {
+                    alert(data.message || 'Registration failed.');
+                }
+            } catch (error) {
+                console.error('Error during sign up:', error);
+                alert('An error occurred during sign up.');
+            }
+        }
+
+        function handleSignOut() {
+            authToken = null;
+            currentUserId = null;
+            currentUsername = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUserId');
+            localStorage.removeItem('currentUsername');
+            booksDB = []; // Clear local books
+            renderBooks(booksDB); // Clear displayed books
+            updateStats(); // Reset stats
+            updateAuthUI();
+        }
+
+        // --- Book Rendering and Display ---
+        function renderBooks(books) {
+            booksContainer.innerHTML = '';
+            
+            if (books.length === 0 && authToken) { // Only show "no books" if logged in
+                booksContainer.innerHTML = `
+                    <div class="w-full text-center py-12">
+                        <p class="text-gray-500">No books found in your collection. Add some!</p>
+                    </div>
+                `;
+                return;
+            } else if (books.length === 0 && !authToken) {
+                // This case is handled by updateAuthUI
+                return;
+            }
+            
+            books.forEach(book => {
+                const bookElement = createBookElement(book);
+                booksContainer.appendChild(bookElement);
+            });
+        }
+
+        function createBookElement(book) {
+            const bookElement = document.createElement('div');
+            bookElement.className = 'book relative w-48 h-64 rounded-lg bg-white shadow-md overflow-hidden flex flex-col';
+            bookElement.dataset.id = book._id; // Use _id from MongoDB
+            
+            // Determine spine color based on genre
+            const spineColor = getGenreColor(book.genre);
+            
+            bookElement.innerHTML = `
+                <div class="book-spine" style="background-color: ${spineColor};"></div>
+                <div class="flex-1 flex flex-col">
+                    <div class="h-36 bg-gray-100 flex justify-center items-center p-2">
+                        <img src="${book.coverUrl || 'https://placehold.co/200x300?text=No+Cover'}" alt="${book.title} by ${book.author}" class="h-full w-auto object-contain">
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col">
+                        <h3 class="font-bold text-gray-800 line-clamp-2">${book.title}</h3>
+                        <p class="text-sm text-gray-600 mt-1">${book.author}</p>
+                        <div class="mt-2 flex justify-between items-center">
+                            <span class="text-xs px-2 py-1 rounded-full ${book.read ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'}">
+                                ${book.read ? 'Read' : 'Unread'}
+                            </span>
+                            ${book.favorite ? '<span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">Favorite</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            bookElement.addEventListener('click', () => showBookDetails(book._id)); // Use _id
+            
+            return bookElement;
+        }
+
+        function getGenreColor(genre) {
+            const genreColors = {
+                'Fiction': '#6B7280',
+                'Non-Fiction': '#9CA3AF',
+                'Science Fiction': '#3B82F6',
+                'Fantasy': '#8B5CF6',
+                'Romance': '#EC4899',
+                'Mystery': '#10B981',
+                'Biography': '#F59E0B',
+                'History': '#6366F1',
+                'Self-Help': '#06B6D4',
+                'Other': '#64748B'
+            };
+            
+            return genreColors[genre] || '#64748B';
+        }
+
+        async function showBookDetails(bookId) {
+            const book = booksDB.find(b => b._id === bookId); // Use _id
+            if (!book) return;
+            
+            currentBookId = bookId;
+            
+            document.getElementById('bookDetailsTitle').textContent = book.title;
+            document.getElementById('bookDetailsAuthor').textContent = book.author;
+            document.getElementById('bookDetailsGenre').textContent = book.genre;
+            document.getElementById('bookDetailsPublished').textContent = book.publishedYear ? `Published in ${book.publishedYear}` : '';
+            document.getElementById('bookDetailsPages').textContent = book.pages ? `${book.pages} pages` : '';
+            document.getElementById('bookDetailsStatus').textContent = book.read ? 'Read' : 'Unread';
+            document.getElementById('bookDetailsDescription').textContent = book.description || 'No description available.';
+            document.getElementById('bookDetailsIsbn').textContent = book.isbn || 'Not specified';
+            
+            const favoriteBadge = document.getElementById('bookDetailsFavorite');
+            if (book.favorite) {
+                favoriteBadge.classList.remove('hidden');
+            } else {
+                favoriteBadge.classList.add('hidden');
+            }
+            
+            const coverElement = document.getElementById('bookDetailsCover');
+            coverElement.src = book.coverUrl || 'https://placehold.co/300x450?text=Book+Cover';
+            coverElement.alt = `${book.title} by ${book.author}`;
+            
+            openModal(detailsModal);
+        }
+
+        function editCurrentBook() {
+            if (!currentBookId) return;
+            
+            const book = booksDB.find(b => b._id === currentBookId); // Use _id
+            if (!book) return;
+            
+            // Populate form with book data
+            document.getElementById('title').value = book.title;
+            document.getElementById('author').value = book.author;
+            document.getElementById('genre').value = book.genre;
+            document.getElementById('publishedYear').value = book.publishedYear || '';
+            document.getElementById('pages').value = book.pages || '';
+            document.getElementById('isbn').value = book.isbn || '';
+            document.getElementById('description').value = book.description || '';
+            document.getElementById('coverUrl').value = book.coverUrl || '';
+            document.getElementById('read').checked = book.read;
+            document.getElementById('favorite').checked = book.favorite;
+            
+            closeDetailsModal();
+            openEditBookModal();
+        }
+
+        // --- Data Management (API Calls) ---
+        async function fetchAndRenderUserBooks() {
+            if (!authToken) {
+                booksDB = []; // Clear books if not authenticated
+                renderBooks(booksDB);
+                updateStats();
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/books`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) {
+                    if (response.status === 401) { // Token expired or invalid
+                        handleSignOut();
+                        alert('Your session has expired. Please sign in again.');
+                    }
+                    throw new Error('Failed to fetch books');
+                }
+                booksDB = await response.json();
+                renderBooks(booksDB);
+                updateStats();
+            } catch (error) {
+                console.error('Error fetching books:', error);
+                alert('Could not load books. Please try again.');
+            }
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+
+            if (!authToken) {
+                alert('Please sign in to add or update books.');
+                return;
+            }
+
+            const formData = new FormData(bookForm);
+            const bookData = {
+                title: formData.get('title'),
+                author: formData.get('author'),
+                genre: formData.get('genre'),
+                publishedYear: parseInt(formData.get('publishedYear')) || null,
+                pages: parseInt(formData.get('pages')) || null,
+                isbn: formData.get('isbn') || null,
+                read: formData.get('read') === 'on',
+                favorite: formData.get('favorite') === 'on',
+                description: formData.get('description') || null,
+                coverUrl: formData.get('coverUrl') || null
+            };
+
+            try {
+                let response;
+                if (currentBookId) {
+                    // Update existing book
+                    response = await fetch(`${API_BASE_URL}/books/${currentBookId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(bookData)
+                    });
+                } else {
+                    // Add new book
+                    response = await fetch(`${API_BASE_URL}/books`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(bookData)
+                    });
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to save book');
+                }
+
+                await fetchAndRenderUserBooks(); // Re-fetch all books after save
+                closeModal(bookModal);
+            } catch (error) {
+                console.error('Error saving book:', error);
+                alert('An error occurred while saving the book: ' + error.message);
+            }
+        }
+
+        async function deleteCurrentBook() {
+            if (!currentBookId || !authToken) {
+                alert('Please sign in to delete books.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this book?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/books/${currentBookId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to delete book');
+                    }
+
+                    await fetchAndRenderUserBooks(); // Re-fetch all books after delete
+                    closeModal(detailsModal);
+                } catch (error) {
+                    console.error('Error deleting book:', error);
+                    alert('An error occurred while deleting the book: ' + error.message);
+                }
+            }
+        }
+
+        // --- Search and Stats ---
+        function handleSearch() {
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderBooks(booksDB); // Show all books if search is empty
+                return;
+            }
+            
+            const filteredBooks = booksDB.filter(book => 
+                book.title.toLowerCase().includes(searchTerm) ||
+                book.author.toLowerCase().includes(searchTerm) ||
+                book.genre.toLowerCase().includes(searchTerm)
+            );
+            
+            renderBooks(filteredBooks);
+        }
+
+        function updateStats() {
+            totalBooksElement.textContent = booksDB.length;
+            
+            const readCount = booksDB.filter(book => book.read).length;
+            booksReadElement.textContent = readCount;
+            
+            // Find favorite genre
+            const genreCounts = {};
+            booksDB.forEach(book => {
+                if (book.genre) {
+                    genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+                }
+            });
+            
+            let favoriteGenre = '-';
+            let maxCount = 0;
+            
+            Object.entries(genreCounts).forEach(([genre, count]) => {
+                if (count > maxCount) {
+                    maxCount = count;
+                    favoriteGenre = genre;
+                }
+            });
+            
+            favoriteGenreElement.textContent = favoriteGenre;
+        }
+    </script>
+</body>
+</html>
